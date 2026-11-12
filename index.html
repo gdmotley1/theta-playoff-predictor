@@ -100,13 +100,13 @@ h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0
 .who { min-width: 0; }
 .nm { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; transition: color .2s var(--ease); }
 .sub { font-size: 13px; color: var(--label-2); margin-top: 1px; display: block; }
-.byes { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: -2px; }
-.byes .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: var(--label-2); margin-right: 2px; }
-.pt { display: inline-flex; align-items: baseline; gap: 4px; font-size: 12px; font-weight: 500; line-height: 1; padding: 4px 7px; border-radius: 6px; background: var(--fill); color: var(--label-2); white-space: nowrap; }
-.pt i { font-style: normal; font-size: 10px; font-weight: 600; opacity: .7; }
-.pt.st { background: var(--orange-wash); color: var(--orange); }
-.key { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 14px 4px 0; font-size: 12px; color: var(--label-2); }
-.key span { display: inline-flex; align-items: center; gap: 6px; }
+.byes { grid-column: 1 / -1; display: flex; min-width: 0; margin-top: -2px; }
+.btag { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; overflow-x: auto; scrollbar-width: none; white-space: nowrap; font-size: 11.5px; font-weight: 500; line-height: 1; padding: 5px 8px; gap: 5px; border-radius: 7px; background: var(--orange-wash); color: var(--orange); }
+.btag::-webkit-scrollbar { display: none; }
+.btag b { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; }
+.btag i { font-style: normal; font-size: 10px; font-weight: 600; opacity: .75; margin-left: 3px; }
+.btag .dot { opacity: .5; }
+.btag .more { font-weight: 700; }
 .sc { font-size: 22px; font-weight: 600; letter-spacing: -.02em; text-align: right; transition: color .2s var(--ease); }
 .mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--label-3); display: grid; place-items: center; transition: background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease); }
 .mark svg { width: 12px; height: 12px; opacity: 0; transform: scale(.6); transition: opacity .2s var(--ease), transform .25s var(--ease); }
@@ -168,7 +168,6 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
       <button class="tbtn" id="auto">Pick favorites</button>
       <button class="tbtn" id="clearwk">Clear week</button>
     </div>
-    <div class="key"><span><span class="pt st">Starter<i>POS</i></span>on bye</span><span><span class="pt">Bench<i>POS</i></span>on bye</span></div>
   </section>
 
   <section id="v-table" hidden>
@@ -234,18 +233,18 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   // Team logo over the abbreviation; if the image fails, it removes itself and the abbreviation shows.
   const mono = t => `<span class="mono" aria-hidden="true">${esc(t.abbrev)}${t.logo ? `<img src="${esc(t.logo)}" alt="" referrerpolicy="no-referrer" onload="this.classList.add('ok')" onerror="this.remove()">` : ''}</span>`;
 
-  // "C. McLaughlin", "J.K. Dobbins", "Buccaneers" (D/ST) keep the tags short enough for one line.
+  // Last name only ("Robinson", "Fannin Jr."), team name for a D/ST, so a team's byes fit on one line.
   function shortName(b) {
     if (b.pos === 'D/ST') return b.n.replace(/\s*D\/ST$/, '');
     const parts = b.n.split(' ');
-    if (parts.length < 2) return b.n;
-    const first = parts[0].includes('.') ? parts[0] : parts[0][0] + '.';
-    return first + ' ' + parts.slice(1).join(' ');
+    return parts.length < 2 ? b.n : parts.slice(1).join(' ');
   }
+  // One tag per team listing only the starters who are on bye that week.
   function byeLine(t, w) {
-    const list = t.byes[w] || [];
+    const list = (t.byes[w] || []).filter(b => b.st);
     if (!list.length) return '';
-    return `<span class="byes"><span class="lbl">BYES:</span>${list.map(b => `<span class="pt${b.st ? ' st' : ''}" title="${esc(b.n)}">${esc(shortName(b))}<i>${b.pos}</i></span>`).join('')}</span>`;
+    const items = list.map((b, i) => `${i ? '<span class="dot">&middot;</span>' : ''}<span class="it" title="${esc(b.n)}">${esc(shortName(b))}<i>${b.pos}</i></span>`).join('');
+    return `<span class="byes"><span class="btag"><b>BYES:</b>${items}</span></span>`;
   }
 
   function side(g, id) {
@@ -265,7 +264,25 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     const el = document.getElementById('games');
     el.innerHTML = gs.map(g => `<div class="match">${side(g, g.a)}${side(g, g.b)}</div>`).join('');
     document.getElementById('wkh').textContent = `Week ${week}`;
+    fitByes(el);
     if (animate) enter(el);
+  }
+
+  // Keep every BYES tag on one line: drop names from the end and show "+N" until it fits.
+  function fitByes(root) {
+    root.querySelectorAll('.btag').forEach(tag => {
+      const its = [...tag.querySelectorAll('.it')];
+      let hidden = 0;
+      while (tag.scrollWidth > tag.clientWidth + 1 && hidden < its.length - 1) {
+        hidden++;
+        const it = its[its.length - hidden];
+        if (it.previousElementSibling && it.previousElementSibling.classList.contains('dot')) it.previousElementSibling.remove();
+        it.remove();
+        let m = tag.querySelector('.more');
+        if (!m) { m = document.createElement('span'); m.className = 'more'; tag.appendChild(m); }
+        m.textContent = `+${hidden}`;
+      }
+    });
   }
 
   function paint(k) {
@@ -334,7 +351,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 
   const when = new Date(D.generated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   document.getElementById('eyebrow').textContent = `Theta · Weeks ${WEEKS[0]} to ${WEEKS[WEEKS.length - 1]}`;
-  document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. Orange bye tags are players who normally start. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
+  document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. The orange BYES tag lists each team's usual starters who are on bye that week. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
   moveThumb(document.getElementById('viewseg'), 0, 2);
   renderGames(false); refresh();
 })();
