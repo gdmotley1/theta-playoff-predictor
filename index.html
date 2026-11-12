@@ -22,6 +22,8 @@
   --green-wash: rgba(52, 199, 89, .14);
   --red: #d70015;
   --red-wash: rgba(255, 59, 48, .12);
+  --orange: #c93400;
+  --orange-wash: rgba(255, 149, 0, .16);
   --thumb: #ffffff;
   --thumb-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
@@ -32,14 +34,14 @@
     --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
     --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
     --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
-    --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
+    --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
   --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
   --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
-  --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
+  --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { background: var(--bg); }
@@ -98,9 +100,13 @@ h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0
 .who { min-width: 0; }
 .nm { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; transition: color .2s var(--ease); }
 .sub { font-size: 13px; color: var(--label-2); margin-top: 1px; display: block; }
-.bye { font-size: 13px; color: var(--label-3); margin-top: 3px; display: block; line-height: 1.35; }
-.bye b { font-weight: 600; color: var(--label-2); }
-.bye .tag { color: var(--label-2); font-weight: 500; }
+.byes { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: -2px; }
+.byes .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: var(--label-2); margin-right: 2px; }
+.pt { display: inline-flex; align-items: baseline; gap: 4px; font-size: 12px; font-weight: 500; line-height: 1; padding: 4px 7px; border-radius: 6px; background: var(--fill); color: var(--label-2); white-space: nowrap; }
+.pt i { font-style: normal; font-size: 10px; font-weight: 600; opacity: .7; }
+.pt.st { background: var(--orange-wash); color: var(--orange); }
+.key { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 14px 4px 0; font-size: 12px; color: var(--label-2); }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
 .sc { font-size: 22px; font-weight: 600; letter-spacing: -.02em; text-align: right; transition: color .2s var(--ease); }
 .mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--label-3); display: grid; place-items: center; transition: background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease); }
 .mark svg { width: 12px; height: 12px; opacity: 0; transform: scale(.6); transition: opacity .2s var(--ease), transform .25s var(--ease); }
@@ -162,6 +168,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
       <button class="tbtn" id="auto">Pick favorites</button>
       <button class="tbtn" id="clearwk">Clear week</button>
     </div>
+    <div class="key"><span><span class="pt st">Starter<i>POS</i></span>on bye</span><span><span class="pt">Bench<i>POS</i></span>on bye</span></div>
   </section>
 
   <section id="v-table" hidden>
@@ -227,10 +234,18 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   // Team logo over the abbreviation; if the image fails, it removes itself and the abbreviation shows.
   const mono = t => `<span class="mono" aria-hidden="true">${esc(t.abbrev)}${t.logo ? `<img src="${esc(t.logo)}" alt="" referrerpolicy="no-referrer" onload="this.classList.add('ok')" onerror="this.remove()">` : ''}</span>`;
 
+  // "C. McLaughlin", "J.K. Dobbins", "Buccaneers" (D/ST) keep the tags short enough for one line.
+  function shortName(b) {
+    if (b.pos === 'D/ST') return b.n.replace(/\s*D\/ST$/, '');
+    const parts = b.n.split(' ');
+    if (parts.length < 2) return b.n;
+    const first = parts[0].includes('.') ? parts[0] : parts[0][0] + '.';
+    return first + ' ' + parts.slice(1).join(' ');
+  }
   function byeLine(t, w) {
     const list = t.byes[w] || [];
     if (!list.length) return '';
-    return `<span class="bye"><span class="tag">Bye</span> &middot; ${list.map(b => b.st ? `<b>${esc(b.n)}</b>` : esc(b.n)).join(', ')}</span>`;
+    return `<span class="byes"><span class="lbl">BYES:</span>${list.map(b => `<span class="pt${b.st ? ' st' : ''}" title="${esc(b.n)}">${esc(shortName(b))}<i>${b.pos}</i></span>`).join('')}</span>`;
   }
 
   function side(g, id) {
@@ -238,9 +253,9 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     const st = !p ? '' : p === id ? ' win' : ' loss';
     return `<button class="side${st}" data-k="${key(g)}" data-id="${id}" aria-pressed="${p === id}" aria-label="Pick ${esc(t.name)}">
       ${mono(t)}
-      <span class="who"><span class="nm">${esc(t.name)}</span><span class="sub">${wl(t.w, t.l)}</span>${byeLine(t, g.w)}</span>
+      <span class="who"><span class="nm">${esc(t.name)}</span><span class="sub">${wl(t.w, t.l)}</span></span>
       <span class="sc">${f1(t.proj[g.w] || 0)}</span>
-      <span class="mark" aria-hidden="true">${CHECK}</span></button>`;
+      <span class="mark" aria-hidden="true">${CHECK}</span>${byeLine(t, g.w)}</button>`;
   }
 
   function enter(el) { if (calm) return; el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
@@ -319,7 +334,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 
   const when = new Date(D.generated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   document.getElementById('eyebrow').textContent = `Theta · Weeks ${WEEKS[0]} to ${WEEKS[WEEKS.length - 1]}`;
-  document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. Bold names on bye normally start. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
+  document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. Orange bye tags are players who normally start. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
   moveThumb(document.getElementById('viewseg'), 0, 2);
   renderGames(false); refresh();
 })();
