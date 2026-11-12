@@ -25,6 +25,7 @@
   --orange: #c93400;
   --orange-wash: rgba(255, 149, 0, .16);
   --thumb: #ffffff;
+  --lift: 0 6px 18px rgba(0, 0, 0, .10), 0 1px 3px rgba(0, 0, 0, .08);
   --thumb-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
   --ease: cubic-bezier(.25, .8, .25, 1);
@@ -34,14 +35,14 @@
     --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
     --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
     --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
-    --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
+    --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; --lift: 0 6px 18px rgba(0, 0, 0, .55); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
   --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
   --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
-  --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
+  --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; --lift: 0 6px 18px rgba(0, 0, 0, .55); color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { background: var(--bg); }
@@ -57,7 +58,7 @@ h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0
 
 .progress { margin-top: 14px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--label-2); }
 .progress .track { flex: 1; height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; }
-.progress .track i { display: block; height: 100%; width: 0; background: var(--blue); border-radius: 2px; transition: width .4s var(--ease); }
+.progress .track i { display: block; height: 100%; width: 0; background: var(--green); border-radius: 2px; transition: width .4s var(--ease); }
 .summary { margin-top: 16px; background: var(--card); border-radius: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 14px 0; }
 .summary > div { padding: 0 16px; min-width: 0; }
 .summary > div + div { border-left: .5px solid var(--sep); }
@@ -81,7 +82,7 @@ h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0
 .section-h { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 4px 8px; }
 .section-h h2 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
 .section-h span { font-size: 13px; color: var(--label-2); }
-.list { display: grid; gap: 12px; }
+.list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .list.enter > * { animation: fade .32s var(--ease) both; }
 .list.enter > *:nth-child(2) { animation-delay: .03s; }
 .list.enter > *:nth-child(3) { animation-delay: .06s; }
@@ -89,37 +90,29 @@ h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0
 .list.enter > *:nth-child(5) { animation-delay: .12s; }
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-.match { background: var(--card); border-radius: 14px; overflow: hidden; }
-.side { height: 94px; width: 100%; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto 24px; gap: 12px; align-items: center; text-align: left; padding: 12px 14px; min-height: 64px; position: relative;
-  transition: background .3s var(--ease), box-shadow .3s var(--ease), opacity .3s var(--ease), filter .3s var(--ease); }
-.side:active { background: var(--fill-2); }
-.side + .side::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; border-top: .5px solid var(--sep); }
-.mono { position: relative; overflow: hidden; flex: none; text-transform: uppercase; width: 36px; height: 36px; border-radius: 50%; background: var(--fill); color: var(--label-2); display: grid; place-items: center; font-size: 11px; font-weight: 700; letter-spacing: .02em; transition: background .3s var(--ease), color .3s var(--ease), transform .3s var(--ease); }
+/* Matchup card: two dense 52px rows plus one BYES footer line. Every card is the same height. */
+.match { background: var(--card); border-radius: 16px; position: relative; min-width: 0; }
+.side { width: 100%; height: 52px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto 22px; gap: 10px; align-items: center; text-align: left; padding: 0 14px; position: relative; border-radius: 14px; background: var(--card); z-index: 0;
+  transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s var(--ease), opacity .3s var(--ease); }
+.side:first-child { border-radius: 16px 16px 14px 14px; }
+.side + .side::before { content: ""; position: absolute; top: 0; left: 54px; right: 0; border-top: .5px solid var(--sep); transition: opacity .2s; }
+.match:has(.win) .side + .side::before { opacity: 0; }
+.mono { position: relative; overflow: hidden; flex: none; text-transform: uppercase; width: 30px; height: 30px; border-radius: 50%; background: var(--fill); color: var(--label-2); display: grid; place-items: center; font-size: 9.5px; font-weight: 700; letter-spacing: .02em; }
 .mono img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: var(--card); opacity: 0; transition: opacity .3s var(--ease); }
 .mono img.ok { opacity: 1; }
-.who { min-width: 0; }
-.nm { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; transition: color .2s var(--ease); }
-.sub { font-size: 13px; color: var(--label-2); margin-top: 1px; display: block; }
-.byes { grid-column: 1 / -1; display: flex; min-width: 0; margin-top: -2px; }
-.btag { height: 22px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; overflow-x: auto; scrollbar-width: none; white-space: nowrap; font-size: 11.5px; font-weight: 500; line-height: 1; padding: 0 10px; gap: 5px; border-radius: 999px; background: none; border: 1px solid var(--label-3); color: var(--label-2); }
-.btag::-webkit-scrollbar { display: none; }
-.btag b { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: var(--label); }
-.btag i { font-style: normal; font-size: 10px; font-weight: 600; opacity: .75; margin-left: 3px; }
-.btag .dot { opacity: .5; }
-.btag .more { font-weight: 700; }
-.btag.none { visibility: hidden; }
-.sc { font-size: 22px; font-weight: 600; letter-spacing: -.02em; text-align: right; transition: color .2s var(--ease); }
-.mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--label-3); display: grid; place-items: center; transition: background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease); }
-.mark svg { width: 12px; height: 12px; opacity: 0; transform: scale(.6); transition: opacity .2s var(--ease), transform .25s var(--ease); }
-.side.win .mark { background: var(--blue); border-color: var(--blue); }
+.line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nm { font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.cnt { flex: none; font-size: 11px; font-weight: 600; color: var(--label-2); border: 1px solid var(--label-3); border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+.sc { font-size: 19px; font-weight: 600; letter-spacing: -.02em; text-align: right; }
+.mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--label-3); display: grid; place-items: center; transition: background .2s var(--ease), border-color .2s var(--ease), transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+.mark svg { width: 12px; height: 12px; opacity: 0; transform: scale(.5); transition: opacity .2s var(--ease), transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+.side.win { z-index: 2; transform: translateY(-2px) scale(1.015); box-shadow: 0 0 0 2px var(--label), var(--lift); }
+.side.win .mark { background: var(--green); border-color: var(--green); transform: scale(1.08); }
 .side.win .mark svg { opacity: 1; transform: none; }
-.side.win { background: var(--blue-wash); box-shadow: inset 4px 0 0 var(--blue); }
-.side.win .mono { background: var(--blue); color: #fff; transform: scale(1.06); box-shadow: 0 0 0 2px var(--blue); }
-.side.win .nm { color: var(--label); }
-.side.win .sc { color: var(--blue); }
-.side.loss { opacity: .4; filter: grayscale(1); }
-.side.loss .nm, .side.loss .sc { color: var(--label-2); }
-.match:has(.win) .side + .side::before { border-top-color: transparent; }
+.side.loss { opacity: .4; transform: scale(.98); }
+.bfoot { height: 30px; line-height: 30px; border-top: .5px solid var(--sep); padding: 0 14px; font-size: 12px; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bfoot b { color: var(--label); font-weight: 700; letter-spacing: .05em; font-size: 10.5px; margin-right: 6px; }
+.bfoot .tm { color: var(--label); font-weight: 600; }
 
 .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
 .tbtn { height: 44px; border-radius: 12px; background: var(--card); color: var(--blue); font-size: 16px; font-weight: 500; transition: opacity .15s; }
@@ -234,28 +227,30 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   // Team logo over the abbreviation; if the image fails, it removes itself and the abbreviation shows.
   const mono = t => `<span class="mono" aria-hidden="true">${esc(t.abbrev)}${t.logo ? `<img src="${esc(t.logo)}" alt="" referrerpolicy="no-referrer" onload="this.classList.add('ok')" onerror="this.remove()">` : ''}</span>`;
 
-  // Last name only ("Robinson", "Fannin Jr."), team name for a D/ST, so a team's byes fit on one line.
+  // Last name only ("Robinson", "Fannin Jr."), team name for a D/ST.
   function shortName(b) {
     if (b.pos === 'D/ST') return b.n.replace(/\s*D\/ST$/, '');
     const parts = b.n.split(' ');
     return parts.length < 2 ? b.n : parts.slice(1).join(' ');
   }
-  // One tag per team listing only the starters who are on bye that week.
-  function byeLine(t, w) {
-    const list = (t.byes[w] || []).filter(b => b.st);
-    if (!list.length) return '<span class="byes" aria-hidden="true"><span class="btag none"><b>BYES:</b></span></span>';
-    const items = list.map((b, i) => `${i ? '<span class="dot">&middot;</span>' : ''}<span class="it" title="${esc(b.n)}">${esc(shortName(b))}<i>${b.pos}</i></span>`).join('');
-    return `<span class="byes"><span class="btag"><b>BYES:</b>${items}</span></span>`;
-  }
+  const starters = (t, w) => (t.byes[w] || []).filter(b => b.st);
 
   function side(g, id) {
     const t = T[id], p = picks[key(g)];
     const st = !p ? '' : p === id ? ' win' : ' loss';
+    const n = starters(t, g.w).length;
     return `<button class="side${st}" data-k="${key(g)}" data-id="${id}" aria-pressed="${p === id}" aria-label="Pick ${esc(t.name)}">
       ${mono(t)}
-      <span class="who"><span class="nm">${esc(t.name)}</span><span class="sub">${wl(t.w, t.l)}</span></span>
+      <span class="line"><span class="nm">${esc(t.name)}</span>${n ? `<span class="cnt">${n} bye${n > 1 ? 's' : ''}</span>` : ''}</span>
       <span class="sc">${f1(t.proj[g.w] || 0)}</span>
-      <span class="mark" aria-hidden="true">${CHECK}</span>${byeLine(t, g.w)}</button>`;
+      <span class="mark" aria-hidden="true">${CHECK}</span></button>`;
+  }
+
+  // One footer line per game naming every starter on bye, team by team.
+  function byeFoot(g) {
+    const parts = [g.a, g.b].map(id => T[id]).filter(t => starters(t, g.w).length)
+      .map(t => `<span class="tm">${esc(t.abbrev.toUpperCase())}:</span> ${starters(t, g.w).map(b => `${esc(shortName(b))} ${b.pos}`).join(', ')}`);
+    return `<div class="bfoot"><b>BYES:</b>${parts.length ? parts.join(' &middot; ') : 'None this week'}</div>`;
   }
 
   function enter(el) { if (calm) return; el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
@@ -263,27 +258,9 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   function renderGames(animate) {
     const gs = D.games.filter(g => g.w === week);
     const el = document.getElementById('games');
-    el.innerHTML = gs.map(g => `<div class="match">${side(g, g.a)}${side(g, g.b)}</div>`).join('');
+    el.innerHTML = gs.map(g => `<div class="match">${side(g, g.a)}${side(g, g.b)}${byeFoot(g)}</div>`).join('');
     document.getElementById('wkh').textContent = `Week ${week}`;
-    fitByes(el);
     if (animate) enter(el);
-  }
-
-  // Keep every BYES tag on one line: drop names from the end and show "+N" until it fits.
-  function fitByes(root) {
-    root.querySelectorAll('.btag').forEach(tag => {
-      const its = [...tag.querySelectorAll('.it')];
-      let hidden = 0;
-      while (tag.scrollWidth > tag.clientWidth + 1 && hidden < its.length - 1) {
-        hidden++;
-        const it = its[its.length - hidden];
-        if (it.previousElementSibling && it.previousElementSibling.classList.contains('dot')) it.previousElementSibling.remove();
-        it.remove();
-        let m = tag.querySelector('.more');
-        if (!m) { m = document.createElement('span'); m.className = 'more'; tag.appendChild(m); }
-        m.textContent = `+${hidden}`;
-      }
-    });
   }
 
   function paint(k) {
@@ -352,7 +329,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 
   const when = new Date(D.generated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   document.getElementById('eyebrow').textContent = `Theta · Weeks ${WEEKS[0]} to ${WEEKS[WEEKS.length - 1]}`;
-  document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. The BYES tag lists each team's usual starters who are on bye that week. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
+  document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. Byes list each team's usual starters who are off that week. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
   moveThumb(document.getElementById('viewseg'), 0, 2);
   renderGames(false); refresh();
 })();
