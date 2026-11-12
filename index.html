@@ -1,0 +1,335 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Theta Playoff Predictor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: native phone sports app. Large title, record summary, sticky segmented week control, inset grouped
+   lists for matchups and standings. System palette: one blue for selection, green and red only for In / Out. */
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --fill: #e9e9ef;
+  --fill-2: #f2f2f7;
+  --sep: rgba(60, 60, 67, .16);
+  --label: #000000;
+  --label-2: rgba(60, 60, 67, .62);
+  --label-3: rgba(60, 60, 67, .32);
+  --blue: #007aff;
+  --blue-wash: rgba(0, 122, 255, .08);
+  --green: #248a3d;
+  --green-wash: rgba(52, 199, 89, .14);
+  --red: #d70015;
+  --red-wash: rgba(255, 59, 48, .12);
+  --thumb: #ffffff;
+  --thumb-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(.25, .8, .25, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
+    --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
+    --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
+    --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
+  --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
+  --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
+  --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --thumb: #636366; --thumb-shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--bg); }
+body { color: var(--label); font-family: var(--font); font-size: 17px; line-height: 1.3; margin: 0; letter-spacing: -.01em; -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer; background: none; border: 0; padding: 0; touch-action: manipulation; }
+button:focus-visible, input:focus-visible + .sw { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 8px; }
+.col { max-width: 480px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header { padding-block: 20px 2px; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: .02em; }
+h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0; line-height: 1.15; }
+
+.summary { margin-top: 16px; background: var(--card); border-radius: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 14px 0; }
+.summary > div { padding: 0 16px; min-width: 0; }
+.summary > div + div { border-left: .5px solid var(--sep); }
+.summary .k { font-size: 13px; color: var(--label-2); }
+.summary .v { font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; line-height: 1.1; }
+.badge { display: inline-block; font-size: 15px; font-weight: 600; padding: 4px 10px; border-radius: 8px; margin-top: 4px; letter-spacing: 0; transition: background .25s var(--ease), color .25s var(--ease); }
+.badge.in { color: var(--green); background: var(--green-wash); }
+.badge.out { color: var(--red); background: var(--red-wash); }
+.summary .foot { grid-column: 1 / -1; border-top: .5px solid var(--sep); border-left: 0; margin-top: 12px; padding-top: 10px; font-size: 13px; color: var(--label-2); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; padding-block: 12px 10px; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
+.segc { position: relative; display: grid; background: var(--fill); border-radius: 9px; padding: 2px; }
+.segc .thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; border-radius: 7px; background: var(--thumb); box-shadow: var(--thumb-shadow); transition: transform .3s var(--ease); }
+.segc button { position: relative; height: 32px; font-size: 13px; font-weight: 500; color: var(--label); transition: font-weight .2s; }
+.segc button[aria-pressed="true"] { font-weight: 600; }
+.segc button .ck { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--blue); margin-left: 4px; vertical-align: 2px; opacity: 0; transition: opacity .25s var(--ease); }
+.segc button .ck.on { opacity: 1; }
+.views { margin-top: 0; }
+#v-table .section-h:first-child { margin-top: 18px; }
+
+.section-h { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 4px 8px; }
+.section-h h2 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+.section-h span { font-size: 13px; color: var(--label-2); }
+.list { display: grid; gap: 12px; }
+.list.enter > * { animation: fade .32s var(--ease) both; }
+.list.enter > *:nth-child(2) { animation-delay: .03s; }
+.list.enter > *:nth-child(3) { animation-delay: .06s; }
+.list.enter > *:nth-child(4) { animation-delay: .09s; }
+.list.enter > *:nth-child(5) { animation-delay: .12s; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.match { background: var(--card); border-radius: 14px; overflow: hidden; }
+.side { width: 100%; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto 24px; gap: 12px; align-items: center; text-align: left; padding: 12px 14px; min-height: 64px; position: relative; transition: background .2s var(--ease); }
+.side:active { background: var(--fill-2); }
+.side + .side::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; border-top: .5px solid var(--sep); }
+.mono { text-transform: uppercase; width: 36px; height: 36px; border-radius: 50%; background: var(--fill); color: var(--label-2); display: grid; place-items: center; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+.side.mine .mono { background: var(--blue); color: #fff; }
+.who { min-width: 0; }
+.nm { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; transition: color .2s var(--ease); }
+.sub { font-size: 13px; color: var(--label-2); margin-top: 1px; display: block; }
+.bye { font-size: 13px; color: var(--label-3); margin-top: 3px; display: block; line-height: 1.35; }
+.bye b { font-weight: 600; color: var(--label-2); }
+.bye .tag { color: var(--label-2); font-weight: 500; }
+.sc { font-size: 22px; font-weight: 600; letter-spacing: -.02em; text-align: right; transition: color .2s var(--ease); }
+.mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--label-3); display: grid; place-items: center; transition: background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease); }
+.mark svg { width: 12px; height: 12px; opacity: 0; transform: scale(.6); transition: opacity .2s var(--ease), transform .25s var(--ease); }
+.side.win .mark { background: var(--blue); border-color: var(--blue); }
+.side.win .mark svg { opacity: 1; transform: none; }
+.side.loss .nm, .side.loss .sc { color: var(--label-3); }
+
+.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.tbtn { height: 44px; border-radius: 12px; background: var(--card); color: var(--blue); font-size: 16px; font-weight: 500; transition: opacity .15s; }
+.tbtn:active { opacity: .55; }
+.tbtn.wide { grid-column: 1 / -1; color: var(--red); }
+
+.group { background: var(--card); border-radius: 14px; overflow: hidden; }
+.grow { display: grid; grid-template-columns: 22px 32px minmax(0, 1fr) auto 50px; gap: 10px; align-items: center; padding: 10px 14px; min-height: 52px; position: relative; }
+.grow + .grow::before { content: ""; position: absolute; top: 0; left: 78px; right: 0; border-top: .5px solid var(--sep); }
+.grow .sd { font-size: 15px; font-weight: 600; color: var(--label-2); text-align: center; }
+.grow .mono { width: 32px; height: 32px; font-size: 10px; }
+.grow .nm { font-size: 15px; }
+.grow .dv { font-size: 11px; font-weight: 600; color: var(--label-2); margin-left: 6px; }
+.grow .wl { font-size: 16px; font-weight: 600; text-align: right; }
+.grow .pf { font-size: 13px; color: var(--label-2); text-align: right; }
+.grow.mine { background: var(--blue-wash); }
+.grow.mine .mono { background: var(--blue); color: #fff; }
+.cell { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; min-height: 48px; font-size: 16px; cursor: pointer; }
+.cell input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sw { width: 51px; height: 31px; border-radius: 16px; background: var(--fill); position: relative; transition: background .25s var(--ease); flex: none; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.16); transition: transform .25s var(--ease); }
+.cell input:checked + .sw { background: var(--green); }
+.cell input:checked + .sw::after { transform: translateX(20px); }
+.note { font-size: 13px; color: var(--label-2); margin: 8px 16px 0; line-height: 1.4; }
+
+footer { padding-block: 24px calc(32px + env(safe-area-inset-bottom, 0px)); }
+footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<header><div class="col">
+  <div class="eyebrow" id="eyebrow">Theta</div>
+  <h1>Playoff Predictor</h1>
+  <section class="summary" id="summary" aria-label="Your projected finish"></section>
+  <div class="segc" id="viewseg" role="group" aria-label="View" style="grid-template-columns:1fr 1fr;margin-top:16px">
+    <span class="thumb" aria-hidden="true"></span>
+    <button data-view="games" aria-pressed="true">Matchups</button>
+    <button data-view="table" aria-pressed="false">Standings</button>
+  </div>
+</div></header>
+
+<div class="bar" id="weekbar"><div class="col">
+  <div class="segc" id="weekseg" role="group" aria-label="Week"></div>
+</div></div>
+
+<main class="col views">
+  <section id="v-games">
+    <div class="section-h" style="margin-top:12px"><h2 id="wkh"></h2><span id="wkn"></span></div>
+    <div class="list" id="games"></div>
+    <div class="tools">
+      <button class="tbtn" id="auto">Pick favorites</button>
+      <button class="tbtn" id="clearwk">Clear week</button>
+    </div>
+  </section>
+
+  <section id="v-table" hidden>
+    <div class="section-h"><h2>In the playoffs</h2><span>Record &nbsp; Points</span></div>
+    <div class="group" id="g-in"></div>
+    <div class="section-h"><h2>On the outside</h2></div>
+    <div class="group" id="g-out"></div>
+    <div class="section-h"><h2>Settings</h2></div>
+    <div class="group">
+      <label class="cell" for="divwin"><span>Division winners seeded 1 and 2</span><input type="checkbox" id="divwin" checked><span class="sw" aria-hidden="true"></span></label>
+    </div>
+    <p class="note">ESPN doesn't say whether division winners get the top two seeds. Ties go to total points.</p>
+    <div class="tools"><button class="tbtn wide" id="clearall">Clear all picks</button></div>
+  </section>
+</main>
+
+<footer><div class="col"><p id="foot"></p></div></footer>
+
+<script id="data" type="application/json">{"generated_at":"2026-11-12T15:00:01","week":10,"reg":14,"playoff_teams":6,"seed_rule":"TOTAL_POINTS_SCORED","teams":[{"id":1,"name":"Goose Loves Israel!!","abbrev":"JOMO","div":"East","w":2,"l":7,"t":0,"pf":1110.72,"pa":1189.42,"me":false,"sched":{"10":9,"11":10,"12":11,"13":3,"14":4},"proj":{"10":134.9,"11":97.2,"12":138.7,"13":133.9,"14":131.3},"byes":{"10":[{"n":"Jaylen Waddle","pos":"WR","nfl":"DEN","avg":9.22,"st":false}],"11":[{"n":"Bijan Robinson","pos":"RB","nfl":"ATL","avg":20.44,"st":true},{"n":"Drake Maye","pos":"QB","nfl":"NE","avg":19.91,"st":true},{"n":"Harold Fannin Jr.","pos":"TE","nfl":"CLE","avg":11.48,"st":true},{"n":"KC Concepcion","pos":"WR","nfl":"CLE","avg":10.04,"st":false},{"n":"Seahawks D/ST","pos":"D/ST","nfl":"SEA","avg":8.56,"st":true},{"n":"Jason Myers","pos":"K","nfl":"SEA","avg":8.33,"st":true},{"n":"A.J. Brown","pos":"WR","nfl":"NE","avg":6.37,"st":false}],"12":[],"13":[{"n":"Zay Flowers","pos":"WR","nfl":"BAL","avg":16.44,"st":true}],"14":[]},"out":[]},{"id":3,"name":"Bobs  Burgers","abbrev":"BOB","div":"East","w":1,"l":8,"t":0,"pf":843.9,"pa":1094.68,"me":false,"sched":{"10":4,"11":7,"12":9,"13":1,"14":13},"proj":{"10":116.7,"11":103.0,"12":118.2,"13":111.7,"14":121.3},"byes":{"10":[{"n":"Saquon Barkley","pos":"RB","nfl":"PHI","avg":8.39,"st":false}],"11":[{"n":"Denzel Boston","pos":"WR","nfl":"CLE","avg":11.52,"st":true},{"n":"Tucker Kraft","pos":"TE","nfl":"GB","avg":10.04,"st":true}],"12":[],"13":[{"n":"Lamar Jackson","pos":"QB","nfl":"BAL","avg":16.02,"st":false},{"n":"Omar Cooper Jr.","pos":"WR","nfl":"NYJ","avg":12.92,"st":true}],"14":[{"n":"Tyler Allgeier","pos":"RB","nfl":"ARI","avg":10.3,"st":true},{"n":"Jake Ferguson","pos":"TE","nfl":"DAL","avg":6.07,"st":false}]},"out":["Lamar Jackson","Jake Ferguson"]},{"id":4,"name":"The Mankler","abbrev":"MANK","div":"West","w":6,"l":3,"t":0,"pf":1153.08,"pa":1113.26,"me":false,"sched":{"10":3,"11":12,"12":13,"13":10,"14":1},"proj":{"10":135.0,"11":120.5,"12":125.1,"13":124.8,"14":124.6},"byes":{"10":[{"n":"Dallas Goedert","pos":"TE","nfl":"PHI","avg":10.57,"st":true}],"11":[{"n":"Kyren Williams","pos":"RB","nfl":"LAR","avg":17.68,"st":true},{"n":"Matthew Stafford","pos":"QB","nfl":"LAR","avg":15.87,"st":false},{"n":"Josh Jacobs","pos":"RB","nfl":"GB","avg":14.6,"st":false}],"12":[],"13":[{"n":"Tre Tucker","pos":"WR","nfl":"LV","avg":12.37,"st":false},{"n":"Ravens D/ST","pos":"D/ST","nfl":"BAL","avg":3.67,"st":true}],"14":[]},"out":["Josh Jacobs"]},{"id":7,"name":"Njigba Please","abbrev":"GOSS","div":"East","w":5,"l":4,"t":0,"pf":1118.4,"pa":1116.08,"me":false,"sched":{"10":11,"11":3,"12":12,"13":9,"14":10},"proj":{"10":108.0,"11":97.5,"12":129.2,"13":129.5,"14":109.2},"byes":{"10":[{"n":"Bucky Irving","pos":"RB","nfl":"TB","avg":18.01,"st":true},{"n":"D'Andre Swift","pos":"RB","nfl":"CHI","avg":17.2,"st":true},{"n":"Colston Loveland","pos":"TE","nfl":"CHI","avg":9.26,"st":false}],"11":[{"n":"Jaxon Smith-Njigba","pos":"WR","nfl":"SEA","avg":26.67,"st":true},{"n":"Drake London","pos":"WR","nfl":"ATL","avg":13.73,"st":true},{"n":"Rhamondre Stevenson","pos":"RB","nfl":"NE","avg":12.63,"st":true}],"12":[],"13":[{"n":"Matt Gay","pos":"K","nfl":"LV","avg":9.78,"st":false}],"14":[{"n":"Dak Prescott","pos":"QB","nfl":"DAL","avg":18.6,"st":true}]},"out":["Jacory Croskey-Merritt"]},{"id":9,"name":"Daejon Love","abbrev":"LALL","div":"East","w":8,"l":1,"t":0,"pf":1176.44,"pa":976.82,"me":false,"sched":{"10":1,"11":11,"12":3,"13":7,"14":14},"proj":{"10":135.3,"11":120.2,"12":133.8,"13":115.0,"14":133.9},"byes":{"10":[{"n":"J.K. Dobbins","pos":"RB","nfl":"DEN","avg":6.94,"st":false}],"11":[{"n":"Matthew Golden","pos":"WR","nfl":"GB","avg":18.66,"st":true},{"n":"Zach Charbonnet","pos":"RB","nfl":"SEA","avg":7.75,"st":false},{"n":"Packers D/ST","pos":"D/ST","nfl":"GB","avg":7.44,"st":false},{"n":"Kaleb Johnson","pos":"RB","nfl":"GB","avg":3.31,"st":false}],"12":[],"13":[{"n":"Brock Bowers","pos":"TE","nfl":"LV","avg":21.29,"st":true},{"n":"Spencer Shrader","pos":"K","nfl":"IND","avg":11.56,"st":true}],"14":[]},"out":[]},{"id":10,"name":"I love Tight Ends","abbrev":"TIp","div":"West","w":8,"l":1,"t":0,"pf":1077.46,"pa":1009.32,"me":false,"sched":{"10":13,"11":1,"12":14,"13":4,"14":7},"proj":{"10":126.0,"11":121.2,"12":128.4,"13":108.7,"14":117.4},"byes":{"10":[{"n":"DeVonta Smith","pos":"WR","nfl":"PHI","avg":17.5,"st":false},{"n":"Chris Godwin Jr.","pos":"WR","nfl":"TB","avg":6.43,"st":false}],"11":[{"n":"Quinshon Judkins","pos":"RB","nfl":"CLE","avg":11.51,"st":false},{"n":"Blake Corum","pos":"RB","nfl":"LAR","avg":10.51,"st":false}],"12":[],"13":[{"n":"Jonathan Taylor","pos":"RB","nfl":"IND","avg":17.07,"st":true},{"n":"Derrick Henry","pos":"RB","nfl":"BAL","avg":16.03,"st":true}],"14":[{"n":"George Pickens","pos":"WR","nfl":"DAL","avg":13.16,"st":false}]},"out":["George Pickens","DeVonta Smith"]},{"id":11,"name":"Rashee Rice's Right Hand","abbrev":"KASS","div":"East","w":5,"l":4,"t":0,"pf":1215.2,"pa":1065.88,"me":false,"sched":{"10":7,"11":9,"12":1,"13":14,"14":12},"proj":{"10":131.7,"11":144.9,"12":135.0,"13":138.7,"14":147.9},"byes":{"10":[{"n":"Jonah Coleman","pos":"RB","nfl":"DEN","avg":12.58,"st":true},{"n":"Rome Odunze","pos":"WR","nfl":"CHI","avg":9.87,"st":false},{"n":"Bears D/ST","pos":"D/ST","nfl":"CHI","avg":7.67,"st":true},{"n":"Broncos D/ST","pos":"D/ST","nfl":"DEN","avg":6.22,"st":false}],"11":[],"12":[],"13":[],"14":[]},"out":[]},{"id":12,"name":"Trey McBride","abbrev":"WUN","div":"West","w":4,"l":5,"t":0,"pf":1029.76,"pa":1029.8,"me":true,"sched":{"10":14,"11":4,"12":7,"13":13,"14":11},"proj":{"10":123.3,"11":127.9,"12":120.2,"13":127.2,"14":117.6},"byes":{"10":[{"n":"Chase McLaughlin","pos":"K","nfl":"TB","avg":11.0,"st":true}],"11":[],"12":[],"13":[{"n":"Braelon Allen","pos":"RB","nfl":"NYJ","avg":12.0,"st":true}],"14":[{"n":"Trey McBride","pos":"TE","nfl":"ARI","avg":18.2,"st":true}]},"out":[]},{"id":13,"name":"CHROME HEARTS CHINO","abbrev":"SHIR","div":"West","w":4,"l":5,"t":0,"pf":1243.76,"pa":1179.12,"me":false,"sched":{"10":10,"11":14,"12":4,"13":12,"14":3},"proj":{"10":128.9,"11":131.2,"12":133.3,"13":129.6,"14":103.6},"byes":{"10":[{"n":"Caleb Williams","pos":"QB","nfl":"CHI","avg":18.56,"st":false},{"n":"Kyle Monangai","pos":"RB","nfl":"CHI","avg":15.57,"st":false},{"n":"Luther Burden III","pos":"WR","nfl":"CHI","avg":15.37,"st":false}],"11":[{"n":"Jordan Love","pos":"QB","nfl":"GB","avg":20.78,"st":true},{"n":"Christian Watson","pos":"WR","nfl":"GB","avg":20.32,"st":true},{"n":"Kyle Pitts Sr.","pos":"TE","nfl":"ATL","avg":7.89,"st":false},{"n":"Rams D/ST","pos":"D/ST","nfl":"LAR","avg":5.33,"st":true}],"12":[],"13":[{"n":"Tyler Warren","pos":"TE","nfl":"IND","avg":12.01,"st":true}],"14":[{"n":"CeeDee Lamb","pos":"WR","nfl":"DAL","avg":22.87,"st":true},{"n":"Javonte Williams","pos":"RB","nfl":"DAL","avg":17.96,"st":true},{"n":"Brandon Aubrey","pos":"K","nfl":"DAL","avg":9.22,"st":true}]},"out":["Kyle Monangai"]},{"id":14,"name":"hole terrorists","abbrev":"SOK","div":"West","w":2,"l":7,"t":0,"pf":1015.56,"pa":1209.9,"me":false,"sched":{"10":12,"11":13,"12":10,"13":11,"14":9},"proj":{"10":111.1,"11":111.6,"12":116.8,"13":92.1,"14":110.1},"byes":{"10":[{"n":"Bo Nix","pos":"QB","nfl":"DEN","avg":14.76,"st":false},{"n":"Emeka Egbuka","pos":"WR","nfl":"TB","avg":11.14,"st":true},{"n":"Buccaneers D/ST","pos":"D/ST","nfl":"TB","avg":10.33,"st":true}],"11":[{"n":"Puka Nacua","pos":"WR","nfl":"LAR","avg":25.23,"st":false},{"n":"DeMario Douglas","pos":"WR","nfl":"NE","avg":10.82,"st":false},{"n":"Hunter Henry","pos":"TE","nfl":"NE","avg":8.9,"st":false}],"12":[],"13":[{"n":"Ashton Jeanty","pos":"RB","nfl":"LV","avg":15.59,"st":true},{"n":"Garrett Wilson","pos":"WR","nfl":"NYJ","avg":14.46,"st":true},{"n":"Breece Hall","pos":"RB","nfl":"NYJ","avg":13.8,"st":true}],"14":[]},"out":["Puka Nacua"]}],"games":[{"w":10,"a":1,"b":9},{"w":10,"a":3,"b":4},{"w":10,"a":7,"b":11},{"w":10,"a":10,"b":13},{"w":10,"a":12,"b":14},{"w":11,"a":1,"b":10},{"w":11,"a":3,"b":7},{"w":11,"a":4,"b":12},{"w":11,"a":9,"b":11},{"w":11,"a":13,"b":14},{"w":12,"a":1,"b":11},{"w":12,"a":3,"b":9},{"w":12,"a":4,"b":13},{"w":12,"a":7,"b":12},{"w":12,"a":10,"b":14},{"w":13,"a":1,"b":3},{"w":13,"a":4,"b":10},{"w":13,"a":7,"b":9},{"w":13,"a":11,"b":14},{"w":13,"a":12,"b":13},{"w":14,"a":1,"b":4},{"w":14,"a":3,"b":13},{"w":14,"a":7,"b":10},{"w":14,"a":9,"b":14},{"w":14,"a":11,"b":12}]}</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const T = {}; D.teams.forEach(t => T[t.id] = t);
+  const ME = D.teams.find(t => t.me).id;
+  const WEEKS = [...new Set(D.games.map(g => g.w))].sort((a, b) => a - b);
+  const N = D.playoff_teams;
+  const key = g => `${g.w}-${g.a}-${g.b}`;
+  const STORE = 'theta-picks-v2';
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const f1 = n => (Math.round(n * 10) / 10).toFixed(1);
+  const wl = (w, l) => `${w}–${l}`;
+  const ord = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+  const fav = g => (T[g.a].proj[g.w] >= T[g.b].proj[g.w] ? g.a : g.b);
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const CHECK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  let picks = null, week = WEEKS[0], view = 'games';
+  try { picks = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) {}
+  if (!picks || typeof picks !== 'object') { picks = {}; D.games.forEach(g => picks[key(g)] = fav(g)); }
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(picks)); } catch (e) {} };
+
+  function standings() {
+    const s = {};
+    D.teams.forEach(t => s[t.id] = { t, w: t.w, l: t.l, pf: t.pf + WEEKS.reduce((a, w) => a + (t.proj[w] || 0), 0) });
+    D.games.forEach(g => { const p = picks[key(g)]; if (!p) return; s[p].w++; s[p === g.a ? g.b : g.a].l++; });
+    const cmp = (a, b) => b.w - a.w || b.pf - a.pf;
+    let all = Object.values(s).sort(cmp);
+    all.forEach(x => x.dw = false);
+    if (document.getElementById('divwin').checked) {
+      const divs = [...new Set(D.teams.map(t => t.div))];
+      const lead = divs.map(d => all.find(x => x.t.div === d)).sort(cmp);
+      lead.forEach(x => x.dw = true);
+      all = lead.concat(all.filter(x => !x.dw));
+    }
+    return all;
+  }
+
+  function seg(el, items, active) {
+    el.style.gridTemplateColumns = `repeat(${items.length}, 1fr)`;
+    if (!el.querySelector('.thumb')) el.insertAdjacentHTML('afterbegin', '<span class="thumb" aria-hidden="true"></span>');
+    el.querySelectorAll('button').forEach(b => b.remove());
+    el.insertAdjacentHTML('beforeend', items.map(it => it.html).join(''));
+    moveThumb(el, items.findIndex(it => it.id === active), items.length);
+  }
+  function moveThumb(el, i, n) {
+    const th = el.querySelector('.thumb');
+    th.style.width = `calc((100% - 4px) / ${n})`;
+    th.style.transform = `translateX(${i * 100}%)`;
+  }
+
+  function renderWeekSeg() {
+    seg(document.getElementById('weekseg'), WEEKS.map(w => {
+      return { id: w, html: `<button data-w="${w}" aria-pressed="${w === week}" aria-label="Week ${w}">Wk ${w}</button>` };
+    }), week);
+  }
+
+  function byeLine(t, w) {
+    const list = t.byes[w] || [];
+    if (!list.length) return '';
+    return `<span class="bye"><span class="tag">Bye</span> &middot; ${list.map(b => b.st ? `<b>${esc(b.n)}</b>` : esc(b.n)).join(', ')}</span>`;
+  }
+
+  function side(g, id) {
+    const t = T[id], p = picks[key(g)];
+    const st = !p ? '' : p === id ? ' win' : ' loss';
+    return `<button class="side${st}${t.me ? ' mine' : ''}" data-k="${key(g)}" data-id="${id}" aria-pressed="${p === id}" aria-label="Pick ${esc(t.name)}">
+      <span class="mono" aria-hidden="true">${esc(t.abbrev)}</span>
+      <span class="who"><span class="nm">${esc(t.name)}</span><span class="sub">${wl(t.w, t.l)}${t.me ? ' &middot; You' : ''}</span>${byeLine(t, g.w)}</span>
+      <span class="sc">${f1(t.proj[g.w] || 0)}</span>
+      <span class="mark" aria-hidden="true">${CHECK}</span></button>`;
+  }
+
+  function enter(el) { if (calm) return; el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+
+  function renderGames(animate) {
+    const gs = D.games.filter(g => g.w === week).sort((x, y) => (x.a === ME || x.b === ME ? -1 : 0) - (y.a === ME || y.b === ME ? -1 : 0));
+    const el = document.getElementById('games');
+    el.innerHTML = gs.map(g => `<div class="match">${side(g, g.a)}${side(g, g.b)}</div>`).join('');
+    document.getElementById('wkh').textContent = `Week ${week}`;
+    if (animate) enter(el);
+  }
+
+  function paint(k) {
+    document.querySelectorAll(`.side[data-k="${k}"]`).forEach(el => {
+      const p = picks[k], id = Number(el.dataset.id);
+      el.classList.toggle('win', p === id);
+      el.classList.toggle('loss', !!p && p !== id);
+      el.setAttribute('aria-pressed', p === id);
+    });
+  }
+
+  function renderSummary(rows) {
+    const i = rows.findIndex(r => r.t.id === ME), r = rows[i];
+    const left = D.games.filter(g => !picks[key(g)]).length;
+    document.getElementById('summary').innerHTML =
+      `<div><div class="k">Record</div><div class="v">${wl(r.w, r.l)}</div></div>
+       <div><div class="k">Seed</div><div class="v">${ord(i + 1)}</div></div>
+       <div><div class="k">Playoffs</div><span class="badge ${i < N ? 'in' : 'out'}">${i < N ? 'In' : 'Out'}</span></div>
+       <div class="foot">${left ? `${left} of ${D.games.length} games still unpicked` : 'Final regular-season record from your picks'}</div>`;
+    const wk = D.games.filter(g => g.w === week), done = wk.filter(g => picks[key(g)]).length;
+    document.getElementById('wkn').textContent = `${done} of ${wk.length} picked`;
+  }
+
+  function grow(r, i) {
+    return `<div class="grow${r.t.me ? ' mine' : ''}" data-id="${r.t.id}"><span class="sd">${i + 1}</span><span class="mono" aria-hidden="true">${esc(r.t.abbrev)}</span>
+      <span class="nm">${esc(r.t.name)}${r.dw ? '<span class="dv">DIV</span>' : ''}</span><span class="wl">${wl(r.w, r.l)}</span><span class="pf">${Math.round(r.pf)}</span></div>`;
+  }
+  function renderTable(rows) {
+    const before = {};
+    document.querySelectorAll('.grow').forEach(el => before[el.dataset.id] = el.getBoundingClientRect().top);
+    document.getElementById('g-in').innerHTML = rows.slice(0, N).map(grow).join('');
+    document.getElementById('g-out').innerHTML = rows.slice(N).map((r, j) => grow(r, j + N)).join('');
+    if (calm || view !== 'table') return;
+    document.querySelectorAll('.grow').forEach(el => {
+      const b = before[el.dataset.id]; if (b == null) return;
+      const dy = b - el.getBoundingClientRect().top; if (!dy) return;
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.25,.8,.25,1)' });
+    });
+  }
+
+  function refresh() { const rows = standings(); renderWeekSeg(); renderSummary(rows); renderTable(rows); }
+
+  function setView(v) {
+    if (v === view) return; view = v;
+    const s = document.getElementById('viewseg');
+    s.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+    moveThumb(s, v === 'games' ? 0 : 1, 2);
+    document.getElementById('v-games').hidden = v !== 'games';
+    document.getElementById('v-table').hidden = v !== 'table';
+    document.getElementById('weekbar').hidden = v !== 'games';
+    enter(v === 'games' ? document.getElementById('games') : document.getElementById('v-table'));
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.view) { setView(b.dataset.view); return; }
+    if (b.dataset.w) { const w = Number(b.dataset.w); if (w === week) return; week = w; renderGames(true); refresh(); return; }
+    if (b.dataset.k) {
+      const id = Number(b.dataset.id);
+      if (picks[b.dataset.k] === id) delete picks[b.dataset.k]; else picks[b.dataset.k] = id;
+      save(); paint(b.dataset.k); refresh(); return;
+    }
+    const wk = D.games.filter(g => g.w === week);
+    if (b.id === 'auto') wk.forEach(g => picks[key(g)] = fav(g));
+    else if (b.id === 'clearwk') wk.forEach(g => delete picks[key(g)]);
+    else if (b.id === 'clearall') picks = {};
+    else return;
+    save(); wk.forEach(g => paint(key(g))); refresh();
+  });
+  document.getElementById('divwin').addEventListener('change', refresh);
+
+  const when = new Date(D.generated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  document.getElementById('eyebrow').textContent = `Theta · Weeks ${WEEKS[0]} to ${WEEKS[WEEKS.length - 1]}`;
+  document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. Bold names on bye normally start. Top ${N} make the playoffs; PF adds projected points through Week ${D.reg}. Picks start on the favorite and are saved on this device.`;
+  moveThumb(document.getElementById('viewseg'), 0, 2);
+  renderGames(false); refresh();
+})();
+</script>
