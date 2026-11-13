@@ -106,7 +106,7 @@ h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0
 .sc { font-size: 19px; font-weight: 600; letter-spacing: -.02em; text-align: right; }
 .mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--label-3); display: grid; place-items: center; transition: background .2s var(--ease), border-color .2s var(--ease), transform .35s cubic-bezier(.34, 1.56, .64, 1); }
 .mark svg { width: 12px; height: 12px; opacity: 0; transform: scale(.5); transition: opacity .2s var(--ease), transform .35s cubic-bezier(.34, 1.56, .64, 1); }
-.side.win { z-index: 2; transform: translateY(-2px) scale(1.015); box-shadow: 0 0 0 2px var(--label), var(--lift); }
+.side.win { z-index: 2; transform: translateY(-2px) scale(1.015); box-shadow: var(--lift); }
 .side.win .mark { background: var(--green); border-color: var(--green); transform: scale(1.08); }
 .side.win .mark svg { opacity: 1; transform: none; }
 .side.loss { opacity: .4; transform: scale(.98); }
