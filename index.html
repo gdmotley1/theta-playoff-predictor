@@ -115,6 +115,24 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .summary .foot { grid-column: 1 / -1; border-top: .5px solid var(--sep); border-left: 0; margin-top: 12px; padding-top: 10px; font-size: 13px; color: var(--label-2); }
 
 .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; padding-block: 12px 10px; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
+/* One fixed-height line under the week tiles. At the top it reads "Week 10 / 3 of 5 picked"; once the
+   header's cut line scrolls away it crossfades to a compact copy of the standings. Its height never changes,
+   so the page never jumps and nothing is covered. */
+.bar { padding-block: 12px 4px; }
+.slot { position: relative; height: 56px; margin-top: 4px; }
+.slot > * { position: absolute; inset: 0; transition: opacity .25s var(--ease), transform .3s var(--ease), visibility 0s; }
+.slot .wkline { margin: 0; padding: 0 4px; align-items: center; }
+.slot .mini { display: flex; align-items: center; opacity: 0; transform: translateY(6px); visibility: hidden; transition: opacity .25s var(--ease), transform .3s var(--ease), visibility 0s linear .3s; }
+.slot.on .mini { opacity: 1; transform: none; visibility: visible; transition: opacity .25s var(--ease), transform .3s var(--ease), visibility 0s; }
+.slot.on .wkline { opacity: 0; transform: translateY(-6px); visibility: hidden; transition: opacity .2s var(--ease), transform .3s var(--ease), visibility 0s linear .3s; }
+.mini .cut-row { margin-top: 0; width: 100%; }
+.mini .seat { gap: 2px; }
+.mini .seat .sd { font-size: 9.5px; }
+.mini .seat .mono { width: min(22px, 100%); font-size: 6.5px; }
+.mini .seat.in .mono { outline-width: 1.5px; }
+.mini .seat .rc { font-size: 9px; }
+.mini .cutbar { height: 46px; width: 2px; }
+#games { margin-top: 8px; }
 .views { margin-top: 0; }
 
 .section-h { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 4px 8px; }
@@ -212,15 +230,18 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 
 <div class="bar" id="weekbar"><div class="col">
   <div class="wk" id="weekseg" role="group" aria-label="Week"></div>
+  <div class="slot" id="slot">
+    <div class="section-h wkline"><h2 id="wkh"></h2><span id="wkn"></span></div>
+    <div class="mini" id="mini" aria-hidden="true"><div class="cut-row" id="mini-row"></div></div>
+  </div>
 </div></div>
 
 <main class="col views">
   <section id="v-games">
-    <div class="section-h" style="margin-top:12px"><h2 id="wkh"></h2><span id="wkn"></span></div>
     <div class="list" id="games"></div>
     <div class="tools">
       <button class="tbtn" id="auto">Pick favorites</button>
-      <button class="tbtn" id="clearwk">Clear week</button>
+      <button class="tbtn" id="nextwk">Next week</button>
       <button class="tbtn wide" id="clearall">Clear all picks</button>
     </div>
   </section>
@@ -312,6 +333,8 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     const el = document.getElementById('games');
     el.innerHTML = gs.map(g => `<div class="match">${side(g, g.a)}${side(g, g.b)}${byeFoot(g)}</div>`).join('');
     document.getElementById('wkh').textContent = `Week ${week}`;
+    const last = week === WEEKS[WEEKS.length - 1];
+    document.getElementById('nextwk').textContent = last ? `Back to Week ${WEEKS[0]}` : `Next: Week ${week + 1}`;
     if (animate) enter(el);
   }
 
@@ -335,23 +358,33 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   // The cut line in the header. When picks reorder the field: seats slide to their new spot, a changed
   // record rolls up into place, a small triangle beside the seed shows who moved up or down, and a team
   // that moves into the playoff spots gets one soft pulse on its green ring.
+  // The same field is drawn twice: in the header, and in the compact sticky copy under the week tiles.
   function renderCut(rows) {
-    const row = document.getElementById('cut-row');
-    const before = {};
-    row.querySelectorAll('.seat').forEach(el => before[el.dataset.id] = {
-      left: el.getBoundingClientRect().left, seed: Number(el.dataset.seed), rec: el.querySelector('.rc').textContent,
-    });
-    const seat = (r, i) => `<div class="seat ${i < N ? 'in' : 'out'}" data-id="${r.t.id}" data-seed="${i + 1}" title="${esc(r.t.name)} ${wl(r.w, r.l)}"><span class="sd"><i class="mv" aria-hidden="true"></i>${i + 1}</span>${mono(r.t)}<span class="rc">${wl(r.w, r.l)}</span></div>`;
+    ['cut-row', 'mini-row'].forEach(id => drawSeats(document.getElementById(id), rows));
     const prevLast = document.getElementById('lastin').textContent, prevFirst = document.getElementById('firstout').textContent;
-    row.style.setProperty('--nin', N);
-    row.style.setProperty('--nout', rows.length - N);
-    row.innerHTML = rows.slice(0, N).map(seat).join('') + '<span class="cutbar" aria-hidden="true"></span>' + rows.slice(N).map((r, j) => seat(r, j + N)).join('');
     document.getElementById('cut-k').textContent = `Top ${N} in`;
     const last = rows[N - 1], first = rows[N];
     document.getElementById('lastin-k').textContent = `Last in · ${ord(N)}`;
     document.getElementById('lastin').innerHTML = `${esc(last.t.name)} <span>${wl(last.w, last.l)}</span>`;
     document.getElementById('firstout-k').textContent = first ? `First out · ${ord(N + 1)}` : '';
     document.getElementById('firstout').innerHTML = first ? `${esc(first.t.name)} <span>${wl(first.w, first.l)}</span>` : '';
+    if (calm) return;
+    const ease = 'cubic-bezier(.25,.8,.25,1)';
+    [['lastin', prevLast], ['firstout', prevFirst]].forEach(([id, prev]) => {
+      const el = document.getElementById(id);
+      if (prev && el.textContent !== prev) el.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: ease });
+    });
+  }
+
+  function drawSeats(row, rows) {
+    const before = {};
+    row.querySelectorAll('.seat').forEach(el => before[el.dataset.id] = {
+      left: el.getBoundingClientRect().left, seed: Number(el.dataset.seed), rec: el.querySelector('.rc').textContent,
+    });
+    const seat = (r, i) => `<div class="seat ${i < N ? 'in' : 'out'}" data-id="${r.t.id}" data-seed="${i + 1}" title="${esc(r.t.name)} ${wl(r.w, r.l)}"><span class="sd"><i class="mv" aria-hidden="true"></i>${i + 1}</span>${mono(r.t)}<span class="rc">${wl(r.w, r.l)}</span></div>`;
+    row.style.setProperty('--nin', N);
+    row.style.setProperty('--nout', rows.length - N);
+    row.innerHTML = rows.slice(0, N).map(seat).join('') + '<span class="cutbar" aria-hidden="true"></span>' + rows.slice(N).map((r, j) => seat(r, j + N)).join('');
     if (calm) return;
     const ease = 'cubic-bezier(.25,.8,.25,1)';
     row.querySelectorAll('.seat').forEach(el => {
@@ -372,11 +405,23 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
         el.querySelector('.mono').animate([{ boxShadow: '0 0 0 0 rgba(48, 209, 88, .55)' }, { boxShadow: '0 0 0 7px rgba(48, 209, 88, 0)' }], { duration: 700, easing: 'ease-out', delay: 250 });
       }
     });
-    [['lastin', prevLast], ['firstout', prevFirst]].forEach(([id, prev]) => {
-      const el = document.getElementById(id);
-      if (prev && el.textContent !== prev) el.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: ease });
-    });
   }
+
+  // Show the compact standings once the header's cut line has scrolled up under the sticky week bar.
+  const slot = document.getElementById('slot'), mini = document.getElementById('mini'), bar = document.getElementById('weekbar'), cutRow = document.getElementById('cut-row');
+  let miniTick = false;
+  function syncMini() {
+    miniTick = false;
+    // The header sits above the week bar, so its row is out of sight once it scrolls off the top of the screen.
+    const gone = cutRow.getBoundingClientRect().bottom < 24;
+    if (gone !== slot.classList.contains('on')) {
+      slot.classList.toggle('on', gone);
+      mini.setAttribute('aria-hidden', String(!gone));
+    }
+  }
+  addEventListener('scroll', () => { if (!miniTick) { miniTick = true; requestAnimationFrame(syncMini); } }, { passive: true });
+  addEventListener('resize', syncMini);
+  syncMini();
 
   function refresh() { const rows = standings(); renderWeekSeg(); renderProgress(); renderCut(rows); }
 
@@ -390,6 +435,14 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
       return;
     }
     if (b.dataset.w) { const w = Number(b.dataset.w); if (w === week) return; week = w; renderGames(true); refresh(); return; }
+    if (b.id === 'nextwk') {
+      const i = WEEKS.indexOf(week);
+      week = WEEKS[(i + 1) % WEEKS.length];
+      renderGames(true); refresh();
+      const top = document.getElementById('games').getBoundingClientRect().top + scrollY - bar.offsetHeight - 10;
+      scrollTo({ top, behavior: calm ? 'auto' : 'smooth' });
+      return;
+    }
     if (b.dataset.k) {
       const id = Number(b.dataset.id);
       if (picks[b.dataset.k] === id) delete picks[b.dataset.k]; else picks[b.dataset.k] = id;
@@ -397,7 +450,6 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     }
     const wk = D.games.filter(g => g.w === week);
     if (b.id === 'auto') wk.forEach(g => picks[key(g)] = fav(g));
-    else if (b.id === 'clearwk') wk.forEach(g => delete picks[key(g)]);
     else if (b.id === 'clearall') picks = {};
     else return;
     save(); D.games.forEach(g => paint(key(g))); refresh();
