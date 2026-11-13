@@ -75,7 +75,11 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .cut-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .cut-row { display: grid; grid-template-columns: repeat(var(--nin), minmax(0, 1fr)) 12px repeat(var(--nout), minmax(0, 1fr)); column-gap: 5px; align-items: end; margin-top: 10px; }
 .seat { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
-.seat .sd { font-size: 11px; font-weight: 800; }
+.seat .sd { font-size: 11px; font-weight: 800; position: relative; }
+/* Movement cue: a small triangle beside the seed of a team that just moved, faded in and out by script. */
+.seat .mv { position: absolute; right: 100%; top: 50%; margin: -2.5px 2px 0 0; width: 0; height: 0; border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; opacity: 0; }
+.seat .mv.up { border-bottom: 5px solid var(--label); }
+.seat .mv.down { border-top: 5px solid var(--label-2); }
 .seat .mono { width: min(30px, 100%); height: auto; aspect-ratio: 1; font-size: 8px; }
 .seat.in .mono { outline: 2px solid var(--green); outline-offset: 0; }
 .seat.out .sd { color: var(--label-3); }
@@ -251,7 +255,10 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   }
 
   // Team logo over the abbreviation; if the image fails, it removes itself and the abbreviation shows.
-  const mono = t => `<span class="mono" aria-hidden="true">${esc(t.abbrev)}${t.logo ? `<img src="${esc(t.logo)}" alt="" referrerpolicy="no-referrer" onload="this.classList.add('ok')" onerror="this.remove()">` : ''}</span>`;
+  // A logo that has loaded once is drawn already visible after that, so re-rendering the cut line on
+  // every pick does not make the logos blink.
+  window.LOGOS = window.LOGOS || new Set();
+  const mono = t => `<span class="mono" aria-hidden="true">${esc(t.abbrev)}${t.logo ? `<img src="${esc(t.logo)}" alt="" referrerpolicy="no-referrer"${LOGOS.has(t.logo) ? ' class="ok"' : ''} onload="this.classList.add('ok'); LOGOS.add(this.getAttribute('src'))" onerror="this.remove()">` : ''}</span>`;
 
   // Last name only ("Robinson", "Fannin Jr."), team name for a D/ST.
   function shortName(b) {
@@ -311,12 +318,17 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   }
 
 
-  // The cut line in the header. Seats slide to their new spot when picks reorder the field.
+  // The cut line in the header. When picks reorder the field: seats slide to their new spot, a changed
+  // record rolls up into place, a small triangle beside the seed shows who moved up or down, and a team
+  // that moves into the playoff spots gets one soft pulse on its green ring.
   function renderCut(rows) {
     const row = document.getElementById('cut-row');
     const before = {};
-    row.querySelectorAll('.seat').forEach(el => before[el.dataset.id] = el.getBoundingClientRect().left);
-    const seat = (r, i) => `<div class="seat ${i < N ? 'in' : 'out'}" data-id="${r.t.id}" title="${esc(r.t.name)} ${wl(r.w, r.l)}"><span class="sd">${i + 1}</span>${mono(r.t)}<span class="rc">${wl(r.w, r.l)}</span></div>`;
+    row.querySelectorAll('.seat').forEach(el => before[el.dataset.id] = {
+      left: el.getBoundingClientRect().left, seed: Number(el.dataset.seed), rec: el.querySelector('.rc').textContent,
+    });
+    const seat = (r, i) => `<div class="seat ${i < N ? 'in' : 'out'}" data-id="${r.t.id}" data-seed="${i + 1}" title="${esc(r.t.name)} ${wl(r.w, r.l)}"><span class="sd"><i class="mv" aria-hidden="true"></i>${i + 1}</span>${mono(r.t)}<span class="rc">${wl(r.w, r.l)}</span></div>`;
+    const prevLast = document.getElementById('lastin').textContent, prevFirst = document.getElementById('firstout').textContent;
     row.style.setProperty('--nin', N);
     row.style.setProperty('--nout', rows.length - N);
     row.innerHTML = rows.slice(0, N).map(seat).join('') + '<span class="cutbar" aria-hidden="true"></span>' + rows.slice(N).map((r, j) => seat(r, j + N)).join('');
@@ -327,10 +339,28 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     document.getElementById('firstout-k').textContent = first ? `First out · ${ord(N + 1)}` : '';
     document.getElementById('firstout').innerHTML = first ? `${esc(first.t.name)} <span>${wl(first.w, first.l)}</span>` : '';
     if (calm) return;
+    const ease = 'cubic-bezier(.25,.8,.25,1)';
     row.querySelectorAll('.seat').forEach(el => {
-      const b = before[el.dataset.id]; if (b == null) return;
-      const dx = b - el.getBoundingClientRect().left; if (!dx) return;
-      el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.25,.8,.25,1)' });
+      const b = before[el.dataset.id]; if (!b) return;
+      const seed = Number(el.dataset.seed);
+      const dx = b.left - el.getBoundingClientRect().left;
+      if (dx) el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], { duration: 420, easing: ease });
+      const rc = el.querySelector('.rc');
+      if (rc.textContent !== b.rec) {
+        rc.animate([{ transform: 'translateY(6px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: ease, delay: 120, fill: 'backwards' });
+      }
+      if (seed !== b.seed) {
+        const mv = el.querySelector('.mv');
+        mv.classList.add(seed < b.seed ? 'up' : 'down');
+        mv.animate([{ opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .7 }, { opacity: 0 }], { duration: 1600, easing: 'ease-out' });
+      }
+      if (seed <= N && b.seed > N) {
+        el.querySelector('.mono').animate([{ boxShadow: '0 0 0 0 rgba(48, 209, 88, .55)' }, { boxShadow: '0 0 0 7px rgba(48, 209, 88, 0)' }], { duration: 700, easing: 'ease-out', delay: 250 });
+      }
+    });
+    [['lastin', prevLast], ['firstout', prevFirst]].forEach(([id, prev]) => {
+      const el = document.getElementById(id);
+      if (prev && el.textContent !== prev) el.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: ease });
     });
   }
 
