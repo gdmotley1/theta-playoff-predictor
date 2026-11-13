@@ -3,9 +3,9 @@
 <title>Theta Playoff Predictor</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 <style>
-/* Layout: native phone sports app. Large title, overall pick progress, sticky segmented week control, inset grouped
+/* Layout: native phone sports app. Broadcast band header with the cut line, sticky segmented week control, inset grouped
    lists for matchups and standings. System palette: one blue for selection, green and red only for In / Out. */
 :root {
   --bg: #f2f2f7;
@@ -22,6 +22,7 @@
   --green-wash: rgba(52, 199, 89, .14);
   --red: #d70015;
   --red-wash: rgba(255, 59, 48, .12);
+  --on-green: #ffffff;
   --orange: #c93400;
   --orange-wash: rgba(255, 149, 0, .16);
   --thumb: #ffffff;
@@ -35,14 +36,14 @@
     --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
     --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
     --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
-    --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; --lift: 0 6px 18px rgba(0, 0, 0, .55); color-scheme: dark;
+    --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; --lift: 0 6px 18px rgba(0, 0, 0, .55); --on-green: #000000; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #000000; --card: #1c1c1e; --fill: #2c2c2e; --fill-2: #1c1c1e; --sep: rgba(84, 84, 88, .6);
   --label: #ffffff; --label-2: rgba(235, 235, 245, .6); --label-3: rgba(235, 235, 245, .3);
   --blue: #0a84ff; --blue-wash: rgba(10, 132, 255, .16); --green: #30d158; --green-wash: rgba(48, 209, 88, .16);
-  --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; --lift: 0 6px 18px rgba(0, 0, 0, .55); color-scheme: dark;
+  --red: #ff453a; --red-wash: rgba(255, 69, 58, .16); --orange: #ff9f0a; --orange-wash: rgba(255, 159, 10, .18); --thumb: #636366; --thumb-shadow: none; --lift: 0 6px 18px rgba(0, 0, 0, .55); --on-green: #000000; color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { background: var(--bg); }
@@ -52,13 +53,39 @@ button { font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer
 button:focus-visible, input:focus-visible + .sw { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 8px; }
 .col { max-width: 480px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
-header { padding-block: 20px 2px; }
-.eyebrow { font-size: 13px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: .02em; }
-h1 { font-size: 32px; font-weight: 700; letter-spacing: -.025em; margin: 2px 0 0; line-height: 1.15; }
-
-.progress { margin-top: 14px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--label-2); }
-.progress .track { flex: 1; height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; }
-.progress .track i { display: block; height: 100%; width: 0; background: var(--green); border-radius: 2px; transition: width .4s var(--ease); }
+/* Header: a full-width broadcast band. Title and pick counter, a divider, then the cut line: every team in
+   seed order with a green bar after the last playoff spot, and the last team in and first team out. */
+.band { background: var(--card); border-bottom: 3px solid var(--green); padding-block: 20px 14px; }
+.band-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--on-green); background: var(--green); padding: 3px 7px; border-radius: 4px; }
+h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92; margin: 6px 0 0; text-transform: uppercase; }
+.count { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding-bottom: 2px; flex: none; }
+.count .n { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.count .n span { color: var(--label-3); }
+.caps { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--label-2); text-transform: uppercase; }
+.caps.g { color: var(--green); }
+.cut { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--sep); }
+.cut-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cut-row { display: grid; grid-template-columns: repeat(var(--nin), minmax(0, 1fr)) 12px repeat(var(--nout), minmax(0, 1fr)); column-gap: 5px; align-items: end; margin-top: 10px; }
+.seat { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.seat .sd { font-size: 11px; font-weight: 800; }
+.seat .mono { width: min(30px, 100%); height: auto; aspect-ratio: 1; font-size: 8px; }
+.seat.in .mono { outline: 2px solid var(--green); outline-offset: 0; }
+.seat.out .sd { color: var(--label-3); }
+.seat.out .mono { opacity: .5; }
+.cutbar { width: 3px; height: 50px; border-radius: 2px; background: var(--green); justify-self: center; }
+.cut-f { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding-top: 10px; border-top: .5px solid var(--sep); }
+.cut-f > div { min-width: 0; }
+.cut-f > div + div { text-align: right; }
+.cut-f .caps { font-size: 10px; }
+.cut-f .who { font-size: 15px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cut-f .who span { color: var(--label-2); font-weight: 600; }
+.wk { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.wk button { height: 52px; border-radius: 10px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 500; transition: background .2s var(--ease), box-shadow .2s var(--ease); }
+.wk button[aria-pressed="true"] { background: var(--fill); box-shadow: inset 0 0 0 1.5px var(--label-3); font-weight: 700; }
+.wk .dots { display: flex; gap: 3px; }
+.wk .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--label-3); transition: background .25s var(--ease); }
+.wk .dots i.on { background: var(--green); }
 .summary { margin-top: 16px; background: var(--card); border-radius: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 14px 0; }
 .summary > div { padding: 0 16px; min-width: 0; }
 .summary > div + div { border-left: .5px solid var(--sep); }
@@ -138,19 +165,32 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 
-<header><div class="col">
-  <div class="eyebrow" id="eyebrow">Theta</div>
-  <h1>Playoff Predictor</h1>
-  <div class="progress" aria-live="polite"><span id="prog-t"></span><span class="track" aria-hidden="true"><i id="prog-b"></i></span></div>
-  <div class="segc" id="viewseg" role="group" aria-label="View" style="grid-template-columns:1fr 1fr;margin-top:16px">
+<header>
+<div class="band"><div class="col">
+  <div class="band-top">
+    <div><span class="tag">THETA</span><h1>Playoff<br>Predictor</h1></div>
+    <div class="count" aria-live="polite"><span class="n" id="pk-n"></span><span class="caps">Games picked</span></div>
+  </div>
+  <section class="cut" aria-label="Playoff field with these picks">
+    <div class="cut-h"><span class="caps">If it ended with these picks</span><span class="caps g" id="cut-k"></span></div>
+    <div class="cut-row" id="cut-row"></div>
+    <div class="cut-f">
+      <div><div class="caps g" id="lastin-k"></div><div class="who" id="lastin"></div></div>
+      <div><div class="caps" id="firstout-k"></div><div class="who" id="firstout"></div></div>
+    </div>
+  </section>
+</div></div>
+<div class="col">
+  <div class="segc" id="viewseg" role="group" aria-label="View" style="grid-template-columns:1fr 1fr;margin-top:14px">
     <span class="thumb" aria-hidden="true"></span>
     <button data-view="games" aria-pressed="true">Matchups</button>
     <button data-view="table" aria-pressed="false">Standings</button>
   </div>
-</div></header>
+</div>
+</header>
 
 <div class="bar" id="weekbar"><div class="col">
-  <div class="segc" id="weekseg" role="group" aria-label="Week"></div>
+  <div class="wk" id="weekseg" role="group" aria-label="Week"></div>
 </div></div>
 
 <main class="col views">
@@ -217,10 +257,12 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     th.style.transform = `translateX(${i * 100}%)`;
   }
 
+  // Week tiles: one dot per game, green once that game is picked.
   function renderWeekSeg() {
-    seg(document.getElementById('weekseg'), WEEKS.map(w => {
-      return { id: w, html: `<button data-w="${w}" aria-pressed="${w === week}" aria-label="Week ${w}">Wk ${w}</button>` };
-    }), week);
+    document.getElementById('weekseg').innerHTML = WEEKS.map(w => {
+      const gs = D.games.filter(g => g.w === w), done = gs.filter(g => picks[key(g)]).length;
+      return `<button data-w="${w}" aria-pressed="${w === week}" aria-label="Week ${w}, ${done} of ${gs.length} picked">Wk ${w}<span class="dots" aria-hidden="true">${gs.map(g => `<i${picks[key(g)] ? ' class="on"' : ''}></i>`).join('')}</span></button>`;
+    }).join('');
   }
 
   // Team logo over the abbreviation; if the image fails, it removes itself and the abbreviation shows.
@@ -273,8 +315,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 
   function renderProgress() {
     const done = D.games.filter(g => picks[key(g)]).length;
-    document.getElementById('prog-t').textContent = done === D.games.length ? 'All games picked' : `${done} of ${D.games.length} games picked`;
-    document.getElementById('prog-b').style.width = `${(done / D.games.length) * 100}%`;
+    document.getElementById('pk-n').innerHTML = `${done}<span>/${D.games.length}</span>`;
     const wk = D.games.filter(g => g.w === week), wd = wk.filter(g => picks[key(g)]).length;
     document.getElementById('wkn').textContent = `${wd} of ${wk.length} picked`;
   }
@@ -296,7 +337,30 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     });
   }
 
-  function refresh() { const rows = standings(); renderWeekSeg(); renderProgress(); renderTable(rows); }
+  // The cut line in the header. Seats slide to their new spot when picks reorder the field.
+  function renderCut(rows) {
+    const row = document.getElementById('cut-row');
+    const before = {};
+    row.querySelectorAll('.seat').forEach(el => before[el.dataset.id] = el.getBoundingClientRect().left);
+    const seat = (r, i) => `<div class="seat ${i < N ? 'in' : 'out'}" data-id="${r.t.id}" title="${esc(r.t.name)} ${wl(r.w, r.l)}"><span class="sd">${i + 1}</span>${mono(r.t)}</div>`;
+    row.style.setProperty('--nin', N);
+    row.style.setProperty('--nout', rows.length - N);
+    row.innerHTML = rows.slice(0, N).map(seat).join('') + '<span class="cutbar" aria-hidden="true"></span>' + rows.slice(N).map((r, j) => seat(r, j + N)).join('');
+    document.getElementById('cut-k').textContent = `Top ${N} in`;
+    const last = rows[N - 1], first = rows[N];
+    document.getElementById('lastin-k').textContent = `Last in · ${ord(N)}`;
+    document.getElementById('lastin').innerHTML = `${esc(last.t.name)} <span>${wl(last.w, last.l)}</span>`;
+    document.getElementById('firstout-k').textContent = first ? `First out · ${ord(N + 1)}` : '';
+    document.getElementById('firstout').innerHTML = first ? `${esc(first.t.name)} <span>${wl(first.w, first.l)}</span>` : '';
+    if (calm) return;
+    row.querySelectorAll('.seat').forEach(el => {
+      const b = before[el.dataset.id]; if (b == null) return;
+      const dx = b - el.getBoundingClientRect().left; if (!dx) return;
+      el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.25,.8,.25,1)' });
+    });
+  }
+
+  function refresh() { const rows = standings(); renderWeekSeg(); renderProgress(); renderCut(rows); renderTable(rows); }
 
   function setView(v) {
     if (v === view) return; view = v;
@@ -327,7 +391,6 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   });
 
   const when = new Date(D.generated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  document.getElementById('eyebrow').textContent = `Theta · Weeks ${WEEKS[0]} to ${WEEKS[WEEKS.length - 1]}`;
   document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. Byes list each team's usual starters who are off that week. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
   moveThumb(document.getElementById('viewseg'), 0, 2);
   renderGames(false); refresh();
