@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Theta Playoff Predictor</title>
+<title>Theta Playoff Machine</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
@@ -54,16 +54,19 @@ button:focus-visible, input:focus-visible + .sw { outline: 2px solid var(--blue)
 .col { max-width: 480px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
 /* Header: a full-width broadcast band. Title and pick counter, a divider, then the cut line: every team in
-   seed order with a green bar after the last playoff spot, and the last team in and first team out. */
-.band { background: var(--card); border-bottom: 3px solid var(--green); padding-block: 20px 14px; }
+   seed order with a bar after the last playoff spot, and the last team in and first team out. The band's accent
+   is the text color; green stays only on the rings around playoff teams, since green means a pick. */
+.band { background: var(--card); border-bottom: 3px solid var(--label); padding-block: 20px 14px; }
 .band-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
-.tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--on-green); background: var(--green); padding: 3px 7px; border-radius: 4px; }
-h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92; margin: 6px 0 0; text-transform: uppercase; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.theta { font-family: "Times New Roman", Times, "Noto Serif", serif; font-weight: 700; font-size: 62px; line-height: .78; color: var(--label); flex: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92; margin: 0; text-transform: uppercase; }
 .count { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding-bottom: 2px; flex: none; }
 .count .n { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
 .count .n span { color: var(--label-3); }
 .caps { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--label-2); text-transform: uppercase; }
-.caps.g { color: var(--green); }
+.caps.g { color: var(--label); }
 .cut { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--sep); }
 .cut-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .cut-row { display: grid; grid-template-columns: repeat(var(--nin), minmax(0, 1fr)) 12px repeat(var(--nout), minmax(0, 1fr)); column-gap: 5px; align-items: end; margin-top: 10px; }
@@ -73,7 +76,7 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .seat.in .mono { outline: 2px solid var(--green); outline-offset: 0; }
 .seat.out .sd { color: var(--label-3); }
 .seat.out .mono { opacity: .5; }
-.cutbar { width: 3px; height: 50px; border-radius: 2px; background: var(--green); justify-self: center; }
+.cutbar { width: 3px; height: 50px; border-radius: 2px; background: var(--label); justify-self: center; }
 .cut-f { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding-top: 10px; border-top: .5px solid var(--sep); }
 .cut-f > div { min-width: 0; }
 .cut-f > div + div { text-align: right; }
@@ -179,7 +182,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 <header>
 <div class="band"><div class="col">
   <div class="band-top">
-    <div><span class="tag">THETA</span><h1>Playoff<br>Predictor</h1></div>
+    <div class="brand"><span class="theta" aria-hidden="true">&Theta;</span><h1><span class="sr">Theta </span>Playoff<br>Machine</h1></div>
     <div class="count" aria-live="polite"><span class="n" id="pk-n"></span><span class="caps">Games picked</span></div>
   </div>
   <section class="cut" aria-label="Playoff field with these picks">
