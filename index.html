@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 <style>
-/* Layout: native phone sports app. Broadcast band header with the cut line, sticky segmented week control, inset grouped
-   lists for matchups and standings. System palette: one blue for selection, green and red only for In / Out. */
+/* Layout: native phone sports app. Broadcast band header with the cut line (seeds and records, so no separate
+   standings view), sticky week tiles, and one card per matchup. Green means a pick or a playoff spot. */
 :root {
   --bg: #f2f2f7;
   --card: #ffffff;
@@ -111,14 +111,7 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .summary .foot { grid-column: 1 / -1; border-top: .5px solid var(--sep); border-left: 0; margin-top: 12px; padding-top: 10px; font-size: 13px; color: var(--label-2); }
 
 .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; padding-block: 12px 10px; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
-.segc { position: relative; display: grid; background: var(--fill); border-radius: 9px; padding: 2px; }
-.segc .thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; border-radius: 7px; background: var(--thumb); box-shadow: var(--thumb-shadow); transition: transform .3s var(--ease); }
-.segc button { position: relative; height: 32px; font-size: 13px; font-weight: 500; color: var(--label); transition: font-weight .2s; }
-.segc button[aria-pressed="true"] { font-weight: 600; }
-.segc button .ck { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--blue); margin-left: 4px; vertical-align: 2px; opacity: 0; transition: opacity .25s var(--ease); }
-.segc button .ck.on { opacity: 1; }
 .views { margin-top: 0; }
-#v-table .section-h:first-child { margin-top: 18px; }
 
 .section-h { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 4px 8px; }
 .section-h h2 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
@@ -170,13 +163,6 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .tbtn:active { opacity: .55; }
 .tbtn.wide { grid-column: 1 / -1; color: var(--red); }
 
-.group { background: var(--card); border-radius: 14px; overflow: hidden; }
-.grow { display: grid; grid-template-columns: 22px 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; min-height: 52px; position: relative; }
-.grow + .grow::before { content: ""; position: absolute; top: 0; left: 78px; right: 0; border-top: .5px solid var(--sep); }
-.grow .sd { font-size: 15px; font-weight: 600; color: var(--label-2); text-align: center; }
-.grow .mono { width: 32px; height: 32px; font-size: 10px; }
-.grow .nm { font-size: 15px; }
-.grow .wl { font-size: 16px; font-weight: 600; text-align: right; }
 .cell { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; min-height: 48px; font-size: 16px; cursor: pointer; }
 .cell input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .sw { width: 51px; height: 31px; border-radius: 16px; background: var(--fill); position: relative; transition: background .25s var(--ease); flex: none; }
@@ -205,13 +191,6 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     </div>
   </section>
 </div></div>
-<div class="col">
-  <div class="segc" id="viewseg" role="group" aria-label="View" style="grid-template-columns:1fr 1fr;margin-top:14px">
-    <span class="thumb" aria-hidden="true"></span>
-    <button data-view="games" aria-pressed="true">Matchups</button>
-    <button data-view="table" aria-pressed="false">Standings</button>
-  </div>
-</div>
 </header>
 
 <div class="bar" id="weekbar"><div class="col">
@@ -225,15 +204,8 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     <div class="tools">
       <button class="tbtn" id="auto">Pick favorites</button>
       <button class="tbtn" id="clearwk">Clear week</button>
+      <button class="tbtn wide" id="clearall">Clear all picks</button>
     </div>
-  </section>
-
-  <section id="v-table" hidden>
-    <div class="section-h"><h2>In the playoffs</h2><span>Record</span></div>
-    <div class="group" id="g-in"></div>
-    <div class="section-h"><h2>On the outside</h2></div>
-    <div class="group" id="g-out"></div>
-    <div class="tools"><button class="tbtn wide" id="clearall">Clear all picks</button></div>
   </section>
 </main>
 
@@ -256,7 +228,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const CHECK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-  let picks = null, week = WEEKS[0], view = 'games';
+  let picks = null, week = WEEKS[0];
   try { picks = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) {}
   if (!picks || typeof picks !== 'object') picks = {};
   const save = () => { try { localStorage.setItem(STORE, JSON.stringify(picks)); } catch (e) {} };
@@ -269,18 +241,6 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     return Object.values(s).sort(cmp);
   }
 
-  function seg(el, items, active) {
-    el.style.gridTemplateColumns = `repeat(${items.length}, 1fr)`;
-    if (!el.querySelector('.thumb')) el.insertAdjacentHTML('afterbegin', '<span class="thumb" aria-hidden="true"></span>');
-    el.querySelectorAll('button').forEach(b => b.remove());
-    el.insertAdjacentHTML('beforeend', items.map(it => it.html).join(''));
-    moveThumb(el, items.findIndex(it => it.id === active), items.length);
-  }
-  function moveThumb(el, i, n) {
-    const th = el.querySelector('.thumb');
-    th.style.width = `calc((100% - 4px) / ${n})`;
-    th.style.transform = `translateX(${i * 100}%)`;
-  }
 
   // Week tiles: one dot per game, green once that game is picked.
   function renderWeekSeg() {
@@ -350,22 +310,6 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     document.getElementById('wkn').textContent = `${wd} of ${wk.length} picked`;
   }
 
-  function grow(r, i) {
-    return `<div class="grow" data-id="${r.t.id}"><span class="sd">${i + 1}</span>${mono(r.t)}
-      <span class="nm">${esc(r.t.name)}</span><span class="wl">${wl(r.w, r.l)}</span></div>`;
-  }
-  function renderTable(rows) {
-    const before = {};
-    document.querySelectorAll('.grow').forEach(el => before[el.dataset.id] = el.getBoundingClientRect().top);
-    document.getElementById('g-in').innerHTML = rows.slice(0, N).map(grow).join('');
-    document.getElementById('g-out').innerHTML = rows.slice(N).map((r, j) => grow(r, j + N)).join('');
-    if (calm || view !== 'table') return;
-    document.querySelectorAll('.grow').forEach(el => {
-      const b = before[el.dataset.id]; if (b == null) return;
-      const dy = b - el.getBoundingClientRect().top; if (!dy) return;
-      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.25,.8,.25,1)' });
-    });
-  }
 
   // The cut line in the header. Seats slide to their new spot when picks reorder the field.
   function renderCut(rows) {
@@ -390,18 +334,8 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     });
   }
 
-  function refresh() { const rows = standings(); renderWeekSeg(); renderProgress(); renderCut(rows); renderTable(rows); }
+  function refresh() { const rows = standings(); renderWeekSeg(); renderProgress(); renderCut(rows); }
 
-  function setView(v) {
-    if (v === view) return; view = v;
-    const s = document.getElementById('viewseg');
-    s.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
-    moveThumb(s, v === 'games' ? 0 : 1, 2);
-    document.getElementById('v-games').hidden = v !== 'games';
-    document.getElementById('v-table').hidden = v !== 'table';
-    document.getElementById('weekbar').hidden = v !== 'games';
-    enter(v === 'games' ? document.getElementById('games') : document.getElementById('v-table'));
-  }
 
   document.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -411,7 +345,6 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
       document.getElementById(b.dataset.bye).classList.toggle('open', open);
       return;
     }
-    if (b.dataset.view) { setView(b.dataset.view); return; }
     if (b.dataset.w) { const w = Number(b.dataset.w); if (w === week) return; week = w; renderGames(true); refresh(); return; }
     if (b.dataset.k) {
       const id = Number(b.dataset.id);
@@ -423,12 +356,11 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     else if (b.id === 'clearwk') wk.forEach(g => delete picks[key(g)]);
     else if (b.id === 'clearall') picks = {};
     else return;
-    save(); wk.forEach(g => paint(key(g))); refresh();
+    save(); D.games.forEach(g => paint(key(g))); refresh();
   });
 
   const when = new Date(D.generated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   document.getElementById('foot').textContent = `Scores are each team's best lineup from ESPN projections as of ${when}. Byes list each team's usual starters who are off that week. Top ${N} records make the playoffs. Tied records are broken by total points, as set in the league's ESPN settings. Tap a team to pick it to win; tap again to undo. Picks are saved on this device only.`;
-  moveThumb(document.getElementById('viewseg'), 0, 2);
   renderGames(false); refresh();
 })();
 </script>
