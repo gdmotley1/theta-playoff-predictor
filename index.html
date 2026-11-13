@@ -137,9 +137,20 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .side.win { z-index: 2; background: linear-gradient(var(--green-wash), var(--green-wash)), var(--card); box-shadow: 0 0 16px -3px color-mix(in srgb, var(--green) 55%, transparent); }
 .side.win .mark { background: var(--green); border-color: var(--green); }
 .side.win .mark svg { opacity: 1; transform: none; }
-.bfoot { height: 30px; line-height: 30px; border-top: .5px solid var(--sep); padding: 0 14px; font-size: 12px; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bfoot b { color: var(--label); font-weight: 700; letter-spacing: .05em; font-size: 10.5px; margin-right: 6px; }
-.bfoot .tm { color: var(--label); font-weight: 600; }
+/* Bye footer: closed, one line of counts so every card is the same height. Tap to open each team's list. */
+.bfoot { width: 100%; height: 32px; display: flex; align-items: center; gap: 8px; border-top: .5px solid var(--sep); padding: 0 14px; font-size: 12px; color: var(--label-2); text-align: left; white-space: nowrap; overflow: hidden; }
+.bfoot b { color: var(--label); font-weight: 700; letter-spacing: .05em; font-size: 10.5px; }
+.bfoot .bc { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bfoot .chev { width: 14px; height: 14px; flex: none; transition: transform .25s var(--ease); }
+.bfoot[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.bwrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s var(--ease); }
+.bwrap.open { grid-template-rows: 1fr; }
+.bpanel { overflow: hidden; min-height: 0; }
+.bpanel-in { padding: 0 14px 10px; }
+.bt { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; color: var(--label); }
+.bt + .bp { margin-top: 2px; }
+.bp + .bt { margin-top: 8px; }
+.bp { font-size: 12px; line-height: 16px; color: var(--label-2); }
 
 .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
 .tbtn { height: 44px; border-radius: 12px; background: var(--card); color: var(--blue); font-size: 16px; font-weight: 500; transition: opacity .15s; }
@@ -288,11 +299,17 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
       <span class="mark" aria-hidden="true">${CHECK}</span></button>`;
   }
 
-  // One footer line per game naming every starter on bye, team by team.
+  // Bye footer. Closed: each team's count of starters on bye. Open: each team's label on its own line, its list below.
+  const CHEV = '<svg class="chev" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5L7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function byeFoot(g) {
-    const parts = [g.a, g.b].map(id => T[id]).filter(t => starters(t, g.w).length)
-      .map(t => `<span class="tm">${esc(t.abbrev.toUpperCase())}:</span> ${starters(t, g.w).map(b => `${esc(shortName(b))} ${b.pos}`).join(', ')}`);
-    return `<div class="bfoot"><b>BYES:</b>${parts.length ? parts.join(' &middot; ') : 'None this week'}</div>`;
+    const teams = [g.a, g.b].map(id => T[id]);
+    const out = teams.filter(t => starters(t, g.w).length);
+    if (!out.length) return '<div class="bfoot"><b>BYES</b><span class="bc">None this week</span></div>';
+    const counts = teams.map(t => `${esc(t.abbrev.toUpperCase())} ${starters(t, g.w).length}`).join(' &middot; ');
+    const body = out.map(t => `<div class="bt">${esc(t.abbrev.toUpperCase())}</div><div class="bp">${starters(t, g.w).map(b => `${esc(shortName(b))} ${b.pos}`).join(', ')}</div>`).join('');
+    const id = `bye-${key(g)}`;
+    return `<button class="bfoot" data-bye="${id}" aria-expanded="false" aria-controls="${id}"><b>BYES</b><span class="bc">${counts}</span>${CHEV}</button>
+      <div class="bwrap" id="${id}"><div class="bpanel"><div class="bpanel-in">${body}</div></div></div>`;
   }
 
   function enter(el) { if (calm) return; el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
@@ -376,6 +393,12 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
 
   document.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.bye) {
+      const open = b.getAttribute('aria-expanded') !== 'true';
+      b.setAttribute('aria-expanded', open);
+      document.getElementById(b.dataset.bye).classList.toggle('open', open);
+      return;
+    }
     if (b.dataset.view) { setView(b.dataset.view); return; }
     if (b.dataset.w) { const w = Number(b.dataset.w); if (w === week) return; week = w; renderGames(true); refresh(); return; }
     if (b.dataset.k) {
