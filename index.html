@@ -80,7 +80,14 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .seat.in .mono { outline: 2px solid var(--green); outline-offset: 0; }
 .seat.out .sd { color: var(--label-3); }
 .seat.out .mono { opacity: .5; }
-.cutbar { width: 3px; height: 50px; border-radius: 2px; background: var(--label); justify-self: center; }
+/* Record under each logo. 10px fits "11-3" beside "3-11" with 8px or more between them from 360px up. */
+.seat .rc { font-size: 10px; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; color: var(--label-2); }
+.seat.out .rc { color: var(--label-3); }
+@media (max-width: 340px) { .seat .rc { font-size: 9px; } }
+/* Narrow phones: step the title, theta and counter down so MACHINE never touches a two-digit count. */
+@media (max-width: 400px) { h1 { font-size: 34px; } .theta { font-size: 56px; } .count .n { font-size: 30px; } }
+@media (max-width: 340px) { h1 { font-size: 29px; } .theta { font-size: 48px; } .count .n { font-size: 26px; } }
+.cutbar { width: 3px; height: 64px; border-radius: 2px; background: var(--label); justify-self: center; }
 .cut-f { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding-top: 10px; border-top: .5px solid var(--sep); }
 .cut-f > div { min-width: 0; }
 .cut-f > div + div { text-align: right; }
@@ -365,7 +372,7 @@ footer p { font-size: 12px; color: var(--label-3); margin: 0; line-height: 1.45;
     const row = document.getElementById('cut-row');
     const before = {};
     row.querySelectorAll('.seat').forEach(el => before[el.dataset.id] = el.getBoundingClientRect().left);
-    const seat = (r, i) => `<div class="seat ${i < N ? 'in' : 'out'}" data-id="${r.t.id}" title="${esc(r.t.name)} ${wl(r.w, r.l)}"><span class="sd">${i + 1}</span>${mono(r.t)}</div>`;
+    const seat = (r, i) => `<div class="seat ${i < N ? 'in' : 'out'}" data-id="${r.t.id}" title="${esc(r.t.name)} ${wl(r.w, r.l)}"><span class="sd">${i + 1}</span>${mono(r.t)}<span class="rc">${wl(r.w, r.l)}</span></div>`;
     row.style.setProperty('--nin', N);
     row.style.setProperty('--nout', rows.length - N);
     row.innerHTML = rows.slice(0, N).map(seat).join('') + '<span class="cutbar" aria-hidden="true"></span>' + rows.slice(N).map((r, j) => seat(r, j + N)).join('');
