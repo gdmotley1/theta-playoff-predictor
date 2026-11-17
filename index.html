@@ -98,8 +98,8 @@ h1 { font-size: 38px; font-weight: 900; letter-spacing: -.04em; line-height: .92
 .cut-f .caps { font-size: 10px; }
 .cut-f .who { font-size: 15px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cut-f .who span { color: var(--label-2); font-weight: 600; }
-.wk { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-.wk button { height: 52px; border-radius: 10px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 500; transition: background .2s var(--ease), box-shadow .2s var(--ease); }
+.wk { display: flex; justify-content: center; gap: 8px; }
+.wk button { flex: 0 1 calc((100% - 32px) / 5); min-width: 0; height: 52px; border-radius: 10px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 500; transition: background .2s var(--ease), box-shadow .2s var(--ease); }
 .wk button[aria-pressed="true"] { background: var(--fill); box-shadow: inset 0 0 0 1.5px var(--label-3); font-weight: 700; }
 .wk .dots { display: flex; gap: 3px; }
 .wk .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--label-3); transition: background .25s var(--ease); }
